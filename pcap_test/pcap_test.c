@@ -14,43 +14,45 @@ struct tcphdr *tcph;
 
 void show_pac(u_char *none, const struct pcap_pkthdr *pkthdr, const u_char *pack)
 {
+    //time,lengthof portion present, length this packet
 
-    static int count = 1;
     struct ether_header *ep;//get ether header
     unsigned short ether_type;
+
     int chcnt =0;
-    int ethcnt = 0;
-    int length=pkthdr->len;//1024 len
+    int ethcnt = 0;//mac address counter
+    int length=pkthdr->len;
 
-    // ethernet output
+
+//Mac address output
+//shost is directly ouput after dhost end
+
     ep = (struct ether_header *)pack;
+    u_char *p =ep -> ether_dhost;
 
-    printf("\nEthernet Header\nSrc Mac Address: ");
-    for(ethcnt =0; ethcnt<6; ethcnt++){
-    printf("%02X:", ep->ether_shost[ethcnt]);
-    if (ethcnt == 5)
-        printf("%02X\n", ep->ether_shost[ethcnt]);
-
+    printf("\nEthernet Header\n");
+    for(ethcnt =0; ethcnt<12; ethcnt++){
+        if(ethcnt == 0)
+            printf("Dst Mac Address: ");
+        else if(ethcnt == 6)
+            printf("\nSrc Mac Address: ");
+        printf("%02X ", *(p + ethcnt));
     }
-    printf("Dst Mac Address: ");
-    for(ethcnt =0; ethcnt<6; ethcnt++){
-    printf("%02X:", ep->ether_dhost[ethcnt]);
-    if (ethcnt == 5)
-        printf("%02X\n", ep->ether_dhost[ethcnt]);
 
-    }
 
     pack += sizeof(struct ether_header);
     ether_type = ntohs(ep->ether_type);
+
+
     if (ether_type == ETHERTYPE_IP)
     {
-    //IP address output
+//IP address output
         iph = (struct ip *)pack;
         printf("\nIP Header\n");
         printf("Src IP Address : %s\n", inet_ntoa(iph->ip_src));
         printf("Dst IP Address : %s\n", inet_ntoa(iph->ip_dst));
 
-    // Tcp port output
+// Tcp port output
         if (iph->ip_p == IPPROTO_TCP)
         {
             tcph = (struct tcphdr *)(pack + iph->ip_hl * 4);
@@ -62,7 +64,7 @@ void show_pac(u_char *none, const struct pcap_pkthdr *pkthdr, const u_char *pack
         {
         printf("\nNot TCP Protocol\n");
         }
-    //Hexa output
+//Hexa output
         printf("\nHexa Value\n");
         while(length--)
         {
@@ -71,7 +73,7 @@ void show_pac(u_char *none, const struct pcap_pkthdr *pkthdr, const u_char *pack
             printf("\n");
         }
      }
-        // No ip packet
+// No ip packet
      else
      {
         printf("\nNot IP Packet\n");
@@ -95,7 +97,7 @@ int main(int argc, char *argv[]) {
 
     printf("Device : %s\n", dev);
     //get NIC name
-    packetDescriptor = pcap_open_live(dev, 1024, 1, 300, errbuf);
+    packetDescriptor = pcap_open_live(dev, BUFSIZ, 1, 300, errbuf);
     if(packetDescriptor == NULL) {
         printf("%s\n",errbuf);
         exit(1);

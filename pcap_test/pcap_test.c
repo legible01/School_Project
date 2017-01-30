@@ -22,6 +22,8 @@ void show_pac(u_char *none, const struct pcap_pkthdr *pkthdr, const u_char *pack
     int chcnt =0;
     int ethcnt = 0;//mac address counter
     int length=pkthdr->len;
+    int paylen;
+    u_char *tcpd;
 
 
 //Mac address output
@@ -59,19 +61,32 @@ void show_pac(u_char *none, const struct pcap_pkthdr *pkthdr, const u_char *pack
             printf("\nTCP Protocol\n");
             printf("Src Port : %d\n" , ntohs(tcph->source));
             printf("Dst Port : %d\n" , ntohs(tcph->dest));
+            printf("seq: %d\n",ntohs(tcph->th_seq));
+            paylen=ntohs(iph->ip_len)-((iph->ip_hl*4)+(tcph->doff * 4));
+            printf("\npaylen:%d \n",paylen);
+            if(paylen > 0){
+                tcpd=(u_char *)(pack + (iph->ip_hl * 4) +(tcph->doff * 4));
+
+                //Hexa output
+                printf("\npayload hexa Value\n");
+                while(paylen--)
+                {
+                    printf("%02x ", *(tcpd++));
+                    if ((++chcnt % 16) == 0)
+                        printf("\n");
+                    else if(paylen == 0)
+                        break;
+                }
+            }
+            else
+                printf("\nNo Payload Data\n");
+
         }
         else
         {
         printf("\nNot TCP Protocol\n");
         }
-//Hexa output
-        printf("\nHexa Value\n");
-        while(length--)
-        {
-            printf("%02x ", *(pack++));
-            if ((++chcnt % 16) == 0)
-            printf("\n");
-        }
+
      }
 // No ip packet
      else

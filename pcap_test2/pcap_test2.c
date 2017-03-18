@@ -9,19 +9,53 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 
-//#define UNUSED(p)
-struct ip *iph;
-struct tcphdr *tcph;
+void show_pac(const u_char *pack);
 void findhostadr(u_char * hostadr,int strlen);
+char *correct_dev(int argu_count,char *argu_vector,char *errbuf);
 
-void show_pac(u_char *none, const struct pcap_pkthdr *pkthdr, const u_char *pack)
+int main(int argc, char *argv[]) {
+
+    char *dev;
+    char errbuf[PCAP_ERRBUF_SIZE];
+    pcap_t *packetDescriptor;
+    int loopstatus = 0;
+    const u_char *pkt_data;
+    struct pcap_pkthdr *pkt_hdr;
+
+    //check device argument
+    dev = correct_dev(argc,argv[1],errbuf);
+
+    packetDescriptor = pcap_open_live(dev, BUFSIZ, 1, 300, errbuf);
+    if(packetDescriptor == NULL) {
+        printf("%s\n",errbuf);
+        exit(1);
+    }
+    printf("\n-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*\n");
+
+    while((loopstatus = pcap_next_ex(packetDescriptor, &pkt_hdr, &pkt_data)) >= 0){
+
+        (void)pkt_hdr;
+
+        if(loopstatus == 0){
+            continue;//timeout
+        }
+        show_pac(pkt_data);
+    }
+    if(loopstatus == -1 || loopstatus == -2){
+          pcap_perror(packetDescriptor,"Packet data read error");
+          return -1;
+    }
+
+    return 0;
+}
+
+void show_pac(const u_char *pack)
 {
-    (void)none;
-    (void)pkthdr;
-    //time,lengthof portion present, length this packet
-
     struct ether_header *ep;//get ether header
-    unsigned short ether_type;
+    struct ip *iph;
+    struct tcphdr *tcph;
+
+    u_short ether_type;
 
     int chcnt =0;
     int ethcnt = 0;//mac address counter
@@ -29,8 +63,7 @@ void show_pac(u_char *none, const struct pcap_pkthdr *pkthdr, const u_char *pack
 
     u_char *tcpdata;
     u_char *hostadr;
-    char buf[17];
-
+    char ip_buf[17];
 
 //Mac address output
 //shost is directly ouput after dhost end
@@ -50,21 +83,21 @@ void show_pac(u_char *none, const struct pcap_pkthdr *pkthdr, const u_char *pack
     pack += sizeof(struct ether_header);
     ether_type = ntohs(ep->ether_type);
 
-    if (ether_type == ETHERTYPE_IP)//ether_type ==0x0800
-    {
+    if (ether_type == ETHERTYPE_IP){//ether_type ==0x0800
+
 //IP address output
         iph = (struct ip *)pack;
 
         printf("\nIP Header\n");
-        inet_ntop(AF_INET,&(iph->ip_src),buf,16);//src ip output
-        printf("Src IP Address : %s \n",buf);
+        inet_ntop(AF_INET,&(iph->ip_src),ip_buf,16);//src ip output
+        printf("Src IP Address : %s \n",ip_buf);
 
-        inet_ntop(AF_INET,&(iph->ip_dst),buf,16);//dst ip output
-        printf("Dst IP Address : %s \n",buf);
+        inet_ntop(AF_INET,&(iph->ip_dst),ip_buf,16);//dst ip output
+        printf("Dst IP Address : %s \n",ip_buf);
 
 // Tcp port output
-        if (iph->ip_p == IPPROTO_TCP)//ip_p == 8
-        {
+        if (iph->ip_p == IPPROTO_TCP){  //ip_p == 8
+
             tcph = (struct tcphdr *)(pack + iph->ip_hl * 4);
             printf("\nTCP Protocol\n");
             printf("Src Port : %d\n" , ntohs(tcph->source));
@@ -82,8 +115,7 @@ void show_pac(u_char *none, const struct pcap_pkthdr *pkthdr, const u_char *pack
 
         //Hexa output area
                 printf("\n\npayload hexa Value\n\n");
-                while(paylen--)
-                {
+                while(paylen--){
                     printf("%02x ", *(tcpdata++));
 
                     if ((++chcnt % 16) == 0)
@@ -91,80 +123,62 @@ void show_pac(u_char *none, const struct pcap_pkthdr *pkthdr, const u_char *pack
                     else if(paylen == 0)
                         break;
                 }
+            }else{
+                printf("\nNo Payload Data\n");
             }
-            else{
-                printf("\nNo Payload Data\n");}
 
-        }else
-        {
+        }else{
         printf("\nNot TCP Protocol\n");
         }
 
-     }
-// No ip packet
-     else
-     {
+     }else{  // No ip packet
         printf("\nNot IP Packet\n");
      }
+
       printf("\n-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*\n");
 
 }
 
 void findhostadr(u_char * adr,int strlen)
 {
-    int result = 0;//statement False
-        while((strlen--)!=0)
-        {
+    u_int32_t * h_name_start;
+    u_int16_t * h_name_end;
 
-            if(*adr ==0x48 && *(adr+1) == 0x6f && *(adr+2) == 0x73 && *(adr+3) == 0x74 && *(adr+4) == 0x3a){
-                result = 1;//if find Host: change statement True
-            }
+    while((strlen--)!=0){
+        h_name_start = (u_int32_t*)adr;//this start adr and input 4byte data.
 
-            if(result == 1)
-            {
+        //compare data == HOST
+        if(*h_name_start == ntohl(0x486f7374)){
+
+            //compare data == \r\n
+            while(*h_name_end!=ntohs(0x0d0a)){
+                h_name_end = (u_int16_t *)adr;
                 printf("%c", *adr);
+                adr++;
+            }
+            break;
 
-                if(*(adr+1)==0x0d && *(adr+2)==0x0a)//find \r\n then function is end
-                    return;
-             }
+        }else
             adr++;
-        }
-        printf("\nNO TCP HOST ADR AREA IN DATA\n");
-        return;
+    }
 
+    if(strlen==-1)
+        printf("NO TCP HOST ADR AREA IN DATA\n");
 }
 
-int main(int argc, char *argv[]) {
-
-    char *dev;
-    char errbuf[PCAP_ERRBUF_SIZE];
-    pcap_t *packetDescriptor;
-
-    if (argc != 2)
-    {
+char *correct_dev(int argu_count,char *argu_vector,char *errbuf)
+{
+    if (argu_count != 2){
         printf("use this form to use program\n ");
         printf("ProgramName DeviceName\n");
         printf("your high property device name is %s\n\n",pcap_lookupdev(errbuf));
         exit(1);
     }
-
-
-    dev = argv[1];//input argv
-    printf("Device : %s\n", dev);
-
-    packetDescriptor = pcap_open_live(dev, BUFSIZ, 1, 300, errbuf);
-    if(packetDescriptor == NULL) {
-        printf("%s\n",errbuf);
-        exit(1);
-    }
-    printf("capture success\n");
-    printf("\n-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*\n");
-
-    pcap_loop(packetDescriptor, 0, show_pac, 0);
-    pcap_close(packetDescriptor);
-
-    return 0;
+    printf("Device : %s\n", argu_vector);
+    return argu_vector;
 }
+
+
 
 
 

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include <pcap.h>
 #include <sys/socket.h>
 #include <net/ethernet.h>
@@ -141,8 +142,8 @@ void show_pac(const u_char *pack)
 
 void findhostadr(u_char * adr,int strlen)
 {
-    u_int32_t * h_name_start;
-    u_int16_t * h_name_end;
+    uint32_t * h_name_start;
+    uint16_t * h_name_end;
 
     while((strlen--)!=0){
         h_name_start = (u_int32_t*)adr;//this start adr and input 4byte data.
@@ -152,7 +153,7 @@ void findhostadr(u_char * adr,int strlen)
 
             //compare data == \r\n
             while(*h_name_end!=ntohs(0x0d0a)){
-                h_name_end = (u_int16_t *)adr;
+                h_name_end = (uint16_t *)adr;
                 printf("%c", *adr);
                 adr++;
             }

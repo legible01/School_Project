@@ -31,13 +31,14 @@ int main(int argc, char *argv[]) {
 
     char errbuf[PCAP_ERRBUF_SIZE];
     int flags = PROMISCUOUS;
+
     char *dev = correct_dev(argc,argv[1]);//check device argument
     pcap_t * packetDescriptor = pcap_open_live(dev, BUFSIZ, flags, 300, errbuf);
     if(packetDescriptor == NULL) {
         printf("%s\n",errbuf);
         exit(1);
     }else
-    packet_control(packetDescriptor);
+        packet_control(packetDescriptor);
     return 0;
 }
 

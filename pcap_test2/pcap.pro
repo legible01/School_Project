@@ -10,7 +10,7 @@ CONFIG -= app_bundle
 TEMPLATE = app
 LIBS += -lpcap
 SOURCES += \
-    pcap_test2.c
+    pcap_test2.cpp
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked deprecated (the exact warnings

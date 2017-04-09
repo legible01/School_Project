@@ -13,6 +13,9 @@
 #define ARP_REQUEST     0x0001
 #define ARP_REPLY       0x0002
 
+#define SENDER_FLAG     1
+#define TARGET_FLAG     2
+
 #pragma pack(push, 1)
 struct arp_hdr{
     uint16_t ar_hrd;//arp header structure
@@ -27,15 +30,15 @@ struct arp_hdr{
     };
 #pragma pack(pop)
 
-void get_mac_addr(pcap_t * pack_d,PACKET_INFO *pack_buf, uint32_t *input_ip, uint8_t *recv_mac);//pd,&pack_info,pack_info.sender_ip
-int ether_check(uint8_t *pack1);
-int arp_check(uint8_t *pack2,uint32_t *req_ip,uint8_t *input_mac);//,uint8_t *struc_info_mac,
-void request_ether_info(struct ether_header *eth_p,PACKET_INFO * eth_info);//edit this part
-void request_arp_info(struct arp_hdr *arp_p,PACKET_INFO *arp_info,uint32_t *ip_addr);
-void reply_ether_info(struct ether_header *eth_p,PACKET_INFO * eth_info);
-void reply_arp_info(struct arp_hdr *arp_p,PACKET_INFO *arp_info);
+void get_mac_addr(pcap_t * pack_d, packet_info& pack_info,int flag);//pd,&pack_info,pack_info.sender_ip
+int ether_check(struct ether_header *pack1);
+int arp_check(uint8_t *pack2,packet_info& pack_info,int flag);//,uint8_t *struc_info_mac,
+void request_ether_info(struct ether_header *eth_p,packet_info& pack_info);//edit this part
+void request_arp_info(struct arp_hdr *arp_p,packet_info& pack_info,int flag);
+void reply_ether_info(struct ether_header *eth_p,packet_info& pack_info);
+void reply_arp_info(struct arp_hdr *arp_p,packet_info& pack_info);
 void send_arp_packet(uint8_t *send_arp,pcap_t *pack_d,int packet_size);
-void arp_common_info(struct arp_hdr *arp_p,PACKET_INFO *arp_info);
+void arp_common_info(struct arp_hdr *arp_p,packet_info& pack_info);
 
 
 int main(int argc, char *argv[])
@@ -48,19 +51,15 @@ int main(int argc, char *argv[])
         printf("arp_send [device] [sender ip(1.1.1.1)] [target ip(1.1.1.1)]\n");
         exit(1);
     }
-    packet_info pack_info;//structure
-
-    pack_info.dev_name = argv[1];//input device in structure
-    inet_pton(AF_INET,argv[2],&pack_info.sender_ip);
-    inet_pton(AF_INET,argv[3],&pack_info.target_ip);
-    get_my_info(argv[1],&pack_info.my_ip,&pack_info.my_mac[0]);
+    packet_info pack_info(argv[1],argv[2],argv[3]);//dev,senderip,targetip
+    pack_info.set_my_ip_mac();
 
     char errbuf[PCAP_ERRBUF_SIZE];
-    pcap_t * pd = pcap_open_live(pack_info.dev_name,BUFSIZ,1,1,errbuf);//1sec
+    pcap_t * pd = pcap_open_live(pack_info.get_info_dev(),BUFSIZ,1,1,errbuf);//1sec
 
-    get_mac_addr(pd,&pack_info,&pack_info.sender_ip,pack_info.sender_mac);
-    get_mac_addr(pd,&pack_info,&pack_info.target_ip,pack_info.target_mac);
-
+    get_mac_addr(pd,pack_info,SENDER_FLAG);
+    get_mac_addr(pd,pack_info,TARGET_FLAG);
+    pack_info.printData();
 
 
 
@@ -69,9 +68,9 @@ int main(int argc, char *argv[])
     struct ether_header *eth_hdr_p = (struct ether_header *)&send_buffer;
     struct arp_hdr *arp_hdr_p =(struct arp_hdr *) &send_buffer[sizeof(ether_header)];
 
-    reply_ether_info(eth_hdr_p,&pack_info);
-    arp_common_info(arp_hdr_p,&pack_info);
-    reply_arp_info(arp_hdr_p,&pack_info);
+    reply_ether_info(eth_hdr_p,pack_info);
+    arp_common_info(arp_hdr_p,pack_info);
+    reply_arp_info(arp_hdr_p,pack_info);
 
     send_arp_packet((uint8_t*)&send_buffer,pd,sizeof(send_buffer));
     printf("send_arp reply Done.");
@@ -84,12 +83,13 @@ int main(int argc, char *argv[])
 
 
 
-void get_mac_addr(pcap_t * pack_d,PACKET_INFO *pack_buf, uint32_t *input_ip, uint8_t *recv_mac)//pd,&pack_info,pack_info.sender_ip
+void get_mac_addr(pcap_t * pack_d, packet_info& pack_info,int flag)//pd,&pack_info,pack_info.sender_ip
 {
     uint8_t arp_req_buf[sizeof(ether_header)+sizeof(arp_hdr)];                                            //edit this part
-    request_ether_info((struct ether_header *)&arp_req_buf,pack_buf);
-    arp_common_info((struct arp_hdr *)&arp_req_buf[sizeof(ether_header)],pack_buf);
-    request_arp_info((struct arp_hdr *)&arp_req_buf[sizeof(ether_header)],pack_buf,input_ip);
+    request_ether_info((struct ether_header *)&arp_req_buf,pack_info);
+    arp_common_info((struct arp_hdr *)&arp_req_buf[sizeof(ether_header)],pack_info);
+
+    request_arp_info((struct arp_hdr *)&arp_req_buf[sizeof(ether_header)],pack_info,flag);
 
 
     send_arp_packet((uint8_t *)&arp_req_buf,pack_d,sizeof(arp_req_buf));
@@ -105,10 +105,10 @@ void get_mac_addr(pcap_t * pack_d,PACKET_INFO *pack_buf, uint32_t *input_ip, uin
         if(loopstatus == 0)
             continue;//timeout check
 
-        if(ether_check((uint8_t *)pkt_data)== -1)
+        if(ether_check((ether_header *)pkt_data)== -1)
             continue;
         printf("\nhere2.1?\n");
-        if(arp_check((uint8_t *)pkt_data,input_ip,recv_mac) == -1)//packet_data,ip,info_struc
+        if(arp_check((uint8_t *)pkt_data,pack_info,flag) == -1)//packet_data,ip,info_struc
             continue;//return value 0 then mov next function and if value -1 then restart loop
         printf("\nhere2?");
         printf("\nGet MacAddress Done.\n");
@@ -123,49 +123,65 @@ void get_mac_addr(pcap_t * pack_d,PACKET_INFO *pack_buf, uint32_t *input_ip, uin
 
 }
 
-int ether_check(uint8_t *pack1)
+int ether_check(struct ether_header *pack1)
 {
-    uint16_t *check_eth_type = (uint16_t *)&pack1[12];
+    uint16_t check_eth_type = pack1->ether_type;
 
-    if(ntohs(*check_eth_type) == ETHERTYPE_ARP)//if arp packet pass
+    if(ntohs(check_eth_type) == ETHERTYPE_ARP)//if arp packet pass
         return 0;
     else
         return -1;
 }
 
 
-int arp_check(uint8_t *pack2,uint32_t *req_ip,uint8_t *input_mac)//,uint8_t *struc_info_mac,
+int arp_check(uint8_t *pack2,packet_info& pack_info,int flag)//,uint8_t *struc_info_mac,
 {
     struct arp_hdr *arp_data1 =(struct arp_hdr *)&pack2[sizeof(ether_header)];
 
     if(ntohs(arp_data1->ar_op) != ARP_REPLY)//arp_opcode check
         return -1;
+    switch(flag){
+        case SENDER_FLAG:
+            if(arp_data1->ar_sip == pack_info.get_info_sender_ip()){//right ip then get mac
+                pack_info.set_info_sender_mac(arp_data1->ar_sha);
+                //memcpy(input_mac,arp_data1->ar_sha,sizeof(uint8_t)*6);
+                return 0;
+            }else
+                return -1;
 
-    if(arp_data1->ar_sip == (uint32_t)*req_ip){//right ip then get mac
-        memcpy(input_mac,arp_data1->ar_sha,sizeof(uint8_t)*6);
-        return 0;
-    }else
-        return -1;
+        case TARGET_FLAG:
+            if(arp_data1->ar_sip == pack_info.get_info_target_ip()){//right ip then get mac
+                pack_info.set_info_target_mac(arp_data1->ar_tha);
+                //memcpy(input_mac,arp_data1->ar_sha,sizeof(uint8_t)*6);
+                return 0;
+            }else
+                return -1;
 
 
+    }
+    return -1;
 }
 
-void request_ether_info(struct ether_header *eth_p,PACKET_INFO * eth_info)//edit this part
+void request_ether_info(struct ether_header *eth_p,packet_info& pack_info)//edit this part
 {
     for(int i=0;i<6;i++)
         eth_p->ether_dhost[i]=0xff;
-    memcpy(eth_p->ether_shost,eth_info->my_mac,sizeof(uint8_t)*6);
+    memcpy(eth_p->ether_shost,&pack_info.get_info_my_mac(),sizeof(uint8_t)*6);
     eth_p->ether_type = htons(ETHERTYPE_ARP);
 }
 
 
 
-void request_arp_info(struct arp_hdr *arp_p,PACKET_INFO *arp_info,uint32_t *ip_addr)
+void request_arp_info(struct arp_hdr *arp_p,packet_info& pack_info,int flag)
 {
-     memcpy(&arp_p->ar_sip,&arp_info->my_ip,sizeof(uint32_t));//my ip->sender ip **
-    memcpy(&arp_p->ar_tip,ip_addr,sizeof(uint32_t));//sender ip->target ip
+    memcpy(&arp_p->ar_sip,&pack_info.get_info_my_ip(),sizeof(uint32_t));//my ip->sender ip **
+    if(flag == SENDER_FLAG)
+        memcpy(&arp_p->ar_tip,&pack_info.get_info_sender_ip(),sizeof(uint32_t));//sender ip->target ip
+    else if(flag == TARGET_FLAG)
+        memcpy(&arp_p->ar_tip,&pack_info.get_info_target_ip(),sizeof(uint32_t));//sender ip->target ip
+
     for(int i=0;i<6;i++)
-        arp_p->ar_tha[i]=0;                         //target hw 0
+        arp_p->ar_tha[i]=0;                         //target hw 0 fix this.
 
     arp_p->ar_op = htons(ARP_REQUEST);//if i send arp request then need it **
 
@@ -173,24 +189,24 @@ void request_arp_info(struct arp_hdr *arp_p,PACKET_INFO *arp_info,uint32_t *ip_a
 
 
 
-void reply_ether_info(struct ether_header *eth_p,PACKET_INFO * eth_info)
+void reply_ether_info(struct ether_header *eth_p,packet_info& pack_info)
 {
-    memcpy(eth_p->ether_dhost,eth_info->sender_mac,sizeof(uint8_t)*6);
-    memcpy(eth_p->ether_shost,eth_info->my_mac,sizeof(uint8_t)*6);
+    memcpy(eth_p->ether_dhost,&pack_info.get_info_sender_mac(),sizeof(uint8_t)*6);
+    memcpy(eth_p->ether_shost,&pack_info.get_info_my_mac(),sizeof(uint8_t)*6);
     eth_p->ether_type = htons(ETHERTYPE_ARP);
 }
 
 
-void reply_arp_info(struct arp_hdr *arp_p,PACKET_INFO *arp_info)
+void reply_arp_info(struct arp_hdr *arp_p,packet_info& pack_info)
 {
-    memcpy(&arp_p->ar_sip,&arp_info->target_ip,sizeof(uint8_t)*4);//gateway ip->sender ip
-    memcpy(&arp_p->ar_tip,&arp_info->sender_ip,sizeof(uint8_t)*4);//sender ip->target ip
-    memcpy(arp_p->ar_tha,arp_info->sender_mac,sizeof(uint8_t)*6);//sender mac->target hw
+    memcpy(&arp_p->ar_sip,&pack_info.get_info_target_ip(),sizeof(uint32_t));//gateway ip->sender ip
+    memcpy(&arp_p->ar_tip,&pack_info.get_info_sender_ip(),sizeof(uint32_t));//sender ip->target ip
+    memcpy(arp_p->ar_tha,&pack_info.get_info_sender_mac(),sizeof(uint8_t)*6);//sender mac->target hw
     arp_p->ar_op = htons(ARP_REPLY);//if i send arp request then need it
 }
 
-void arp_common_info(struct arp_hdr *arp_p,PACKET_INFO *arp_info){
-    memcpy(arp_p->ar_sha,arp_info->my_mac,sizeof(uint8_t)*6);//my mac->sender hw
+void arp_common_info(struct arp_hdr *arp_p,packet_info& pack_info){
+    memcpy(arp_p->ar_sha,&pack_info.get_info_my_mac(),sizeof(uint8_t)*6);//my mac->sender hw
     arp_p->ar_hrd = htons(0x0001);
     arp_p->ar_pro = htons(0x0800);
     arp_p->ar_hln=6;
@@ -206,3 +222,4 @@ void send_arp_packet(uint8_t *send_arp,pcap_t *pack_d,int packet_size)
 
     return;
 }
+

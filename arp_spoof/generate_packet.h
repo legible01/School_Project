@@ -11,10 +11,8 @@ struct arp_header_ip{
     uint8_t dst_mac[6];
     uint32_t dst_ip;
 
-//packet_info.arp_ip
-
-};
-#pragma pack(pop);
+};//packet_info.arp_ip
+#pragma pack(pop)
 
 class generate_packet
 {
@@ -23,14 +21,15 @@ public:
 
     uint32_t my_ip;
     uint32_t target_ip;
-    uint32_t sender_ip[num];
-    uint32_t targer_ip[num];
+    //uint32_t sender_ip[num];
+    //uint32_t targer_ip[num];//wtf
 
 
     uint8_t reply_pbuf[sizeof(LIBNET_ETH_H + LIBNET_ARP_ETH_IP_H )];//size 14+28
-    struct libnet_ethernet_hdr *reply_eth_h =&reply_pbuf;
-    struct libnet_arp_hdr *reply_arp_h =&reply_pbuf[LIBNET_ETH_H];
-    struct arp_header_ip *reply_arp_ip_h =&reply_pbuf[LIBNET_ETH_H + LIBNET_ARP_H];
+    //struct libnet_ethernet_hdr *reply_eth_h =&reply_pbuf;
+    //struct libnet_arp_hdr *reply_arp_h =&reply_pbuf[LIBNET_ETH_H];
+    //struct arp_header_ip *reply_arp_ip_h =&reply_pbuf[LIBNET_ETH_H + LIBNET_ARP_H];
+    //forced casting
 
     void proto_packet_set();
 

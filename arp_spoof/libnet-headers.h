@@ -478,13 +478,14 @@ struct libnet_dnsv4_hdr
  *  Ethernet II header
  *  Static header size: 14 bytes
  */
+#pragma pack(push,1)
 struct libnet_ethernet_hdr
 {
     u_int8_t  ether_dhost[ETHER_ADDR_LEN];/* destination ethernet address */
     u_int8_t  ether_shost[ETHER_ADDR_LEN];/* source ethernet address */
     u_int16_t ether_type;                 /* protocol */
 };
-
+#pragma pack(pop)
 #ifndef ETHERTYPE_PUP
 #define ETHERTYPE_PUP           0x0200  /* PUP protocol */
 #endif

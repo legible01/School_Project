@@ -1,8 +1,13 @@
 #ifndef PACKET_INFO_H
 #define PACKET_INFO_H
+#include "libnet-headers.h"
 #include <stdint.h>
 #include <pcap.h>
 #include "packet_info.h"
+#include <vector>
+#include <array>
+
+
 class packet_info
 {
 private:
@@ -10,18 +15,28 @@ private:
 
     uint8_t my_mac[6];
     uint32_t my_ip;
-
     int param_count;
-    uint8_t **sender_mac;//[param_count][6] //= new uint32_t[param_count][6];
-    uint32_t *sender_ip;//[param_count];
-    uint8_t **target_mac;//[param_count][6];//6 size of mac + argument number
-    uint32_t *target_ip;//[param_count];//save data with pton.
+    std ::vector<std::vector<uint8_t> >sender_mac;// arr(param_count, vector<int>(5, 0));
+    std ::vector<std::vector<uint8_t> >target_mac;// arr(param_count, vector<int>(5, 0));
+    /*array2D.resize(HEIGHT);
+    for (int i = 0; i < HEIGHT; ++i)    initialize
+      array2D[i].resize(WIDTH);*/
+
+    //std ::vector< std::vector<uint8_t> >target_mac;
+    //std ::vector<uint32_t>arr();
+    //uint8_t **sender_mac;//[param_count][6] //= new uint32_t[param_count][6];
+    std ::vector<uint32_t>sender_ip;
+    std ::vector<uint32_t>target_ip;
+    //uint32_t *sender_ip;//[param_count];
+    //uint8_t **target_mac;//[param_count][6];//6 size of mac + argument number
+     //target_ip;//[param_count];//save data with pton.
+    uint8_t arp_req_buf[LIBNET_ETH_H + LIBNET_ARP_ETH_IP_H];
 
 #pragma pack(push, 1)
 struct arp_header_ip{
 
     uint8_t src_mac[6];
-    uint32_t src_ip = 4;
+    uint32_t src_ip;
     uint8_t dst_mac[6];
     uint32_t dst_ip;
 
@@ -29,7 +44,8 @@ struct arp_header_ip{
 #pragma pack(pop)
 
 public:
-    void allocate_param_mem(int p_count,char *param_dev);//var create
+    int get_param_count();
+    void allocate_param(int p_count,char *param_dev);
     void set_param_ip(char **param_ip);//param input
     void set_param_mac(pcap_t * pack_d);
     void delete_param_mem();//var delete
@@ -37,21 +53,17 @@ public:
     void check_ioctl_err(int ioctl_flag);
 
     char* get_my_dev();
-    void arp_req_common_set(struct libnet_ethernet_hdr* pack_req_buf);
+    void arp_req_common_set();
 
-    void request_arp_info(struct arp_header_ip *arp_add_info,uint32_t *ip);
-    int arp_check(struct libnet_arp_hdr *arp_reply_buf,uint32_t *ip ,uint8_t * mac);
-    void send_arp_packet(uint8_t *send_arp,pcap_t *pack_d);
-
-
-    void get_mac_addr(pcap_t * pack_d,uint8_t *arp_req_buf,uint32_t *ip,uint8_t *mac);
+    void request_arp_info(int count,int flag);
+    int arp_check(uint8_t *packet,int flag,int count);
+    void send_arp_packet(pcap_t *pack_d);
+    void get_mac_addr(pcap_t * pack_d,int flag,int count);
 
     int  ether_check(struct libnet_ethernet_hdr* ether_req_buf);
-    //void set_param_ip();
-    //void set_param_mac(pcap_t * pack_d);
 
 };
 
 
-//85 drink
+
 #endif // PACKET_INFO_H

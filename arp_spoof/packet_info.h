@@ -11,6 +11,7 @@
 class packet_info
 {
 private:
+    friend class generate_packet;
     char *dev_name;
 
     uint8_t my_mac[6];
@@ -18,18 +19,10 @@ private:
     int param_count;
     std ::vector<std::vector<uint8_t> >sender_mac;// arr(param_count, vector<int>(5, 0));
     std ::vector<std::vector<uint8_t> >target_mac;// arr(param_count, vector<int>(5, 0));
-    /*array2D.resize(HEIGHT);
-    for (int i = 0; i < HEIGHT; ++i)    initialize
-      array2D[i].resize(WIDTH);*/
 
-    //std ::vector< std::vector<uint8_t> >target_mac;
-    //std ::vector<uint32_t>arr();
-    //uint8_t **sender_mac;//[param_count][6] //= new uint32_t[param_count][6];
     std ::vector<uint32_t>sender_ip;
     std ::vector<uint32_t>target_ip;
-    //uint32_t *sender_ip;//[param_count];
-    //uint8_t **target_mac;//[param_count][6];//6 size of mac + argument number
-     //target_ip;//[param_count];//save data with pton.
+
     uint8_t arp_req_buf[LIBNET_ETH_H + LIBNET_ARP_ETH_IP_H];
 
 #pragma pack(push, 1)
@@ -61,6 +54,8 @@ public:
     void get_mac_addr(pcap_t * pack_d,int flag,int count);
 
     int  ether_check(struct libnet_ethernet_hdr* ether_req_buf);
+
+
 
 };
 

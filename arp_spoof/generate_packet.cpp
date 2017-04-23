@@ -40,17 +40,18 @@ void generate_packet :: arp_reply_set(packet_info& pack_info){
 void generate_packet :: send_arp_reply(pcap_t * pack_d,int num)
 {
     printf("\npacket_data_now! : \n");
-    for(int i=0;i<num;i++){
+ /*   for(int i=0;i<num;i++){
         for(int j=0;j<42;j++){
             printf(" %02x ",arp_spoof_pack[i][j]);
         }
     printf("\n");
-    }
+    }*/
 
     //printf("sizeof array!! %d\n",arp_spoof_pack[].size());
     if(num != 0){
-        if(pcap_sendpacket(pack_d,&arp_spoof_pack[num-1][0],arp_spoof_pack[num-1].size()) !=0)
+        if(pcap_sendpacket(pack_d,&arp_spoof_pack[num][0],arp_spoof_pack[num].size()) !=0){
             pcap_perror(pack_d,"packet send error\n\n");
+        }
             return;
     }
     else{

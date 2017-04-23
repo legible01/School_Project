@@ -15,6 +15,7 @@ private:
     char *dev_name;
 
     uint8_t my_mac[6];
+    uint8_t broadcast_d_mac[6];
     uint32_t my_ip;
     int param_count;
     std ::vector<std::vector<uint8_t> >sender_mac;// arr(param_count, vector<int>(5, 0));
@@ -54,8 +55,13 @@ public:
     void get_mac_addr(pcap_t * pack_d,int flag,int count);
 
     int  ether_check(struct libnet_ethernet_hdr* ether_req_buf);
-
-
+    uint32_t* sender_ip_ref(int num);
+    uint32_t* target_ip_ref(int num);
+    uint8_t* my_mac_ref();
+    uint8_t* sender_mac_ref(int num);
+    uint8_t* broad_ff_ref();
+    uint8_t* target_mac_ref(int num);
+    uint32_t* my_ip_ref();
 
 };
 

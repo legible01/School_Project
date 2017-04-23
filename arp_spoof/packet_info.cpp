@@ -25,6 +25,7 @@ void packet_info :: allocate_param(int p_count,char *param_dev)
 {
     dev_name = param_dev;
     printf(" %s ",dev_name);
+    memset(&broadcast_d_mac[0],-1,ETHER_ADDR_LEN);
 
     param_count = (p_count-2)/2;
     printf("paramcount %d\n",param_count);
@@ -273,14 +274,33 @@ int  packet_info :: arp_check(uint8_t *packet,int flag,int count)//,uint8_t *str
                 //ntohl(arp_reply_info->src_ip) == target_ip[count]
                 memcpy(&target_mac[count][0],arp_reply_info->src_mac,ETHER_ADDR_LEN);//how can i choose area
                 return 0;
-            }else
+            }else{
                 return -1;
+            }
         }
-
     }
 
 }
-
-
+uint32_t*  packet_info :: sender_ip_ref(int num){
+    return &sender_ip[num];
+}
+uint32_t*  packet_info :: target_ip_ref(int num){
+    return &target_ip[num];
+}
+uint8_t* packet_info :: my_mac_ref(){
+    return my_mac;
+}
+uint32_t* packet_info :: my_ip_ref(){
+    return &my_ip;
+}
+uint8_t* packet_info :: sender_mac_ref(int num){
+    return &sender_mac[num][0];
+}
+uint8_t* packet_info :: broad_ff_ref(){
+    return &broadcast_d_mac[0];
+}
+uint8_t* packet_info :: target_mac_ref(int num){
+    return &target_mac[num][0];
+}
 
 

@@ -9,7 +9,6 @@ Widget::Widget(QWidget *parent) :
     ui->setupUi(this);
     pb_status();
 
-
 }
 
 Widget::~Widget()
@@ -19,46 +18,25 @@ Widget::~Widget()
 
 void Widget::pb_status()
 {
-    int value = ui->leMoney->text().toInt();
-    ui->pbTea->setEnabled(false);
-    ui->pbCoffee->setEnabled(false);
-    ui->pbYul->setEnabled(false);
-
-    if(value >= 250)
-        ui->pbYul->setEnabled(true);
-    if(value >= 200)
-        ui->pbCoffee->setEnabled(true);
-    if(value >= 100)
-        ui->pbTea->setEnabled(true);
+    ui->pbYul->setEnabled(money >= 250);
+    ui->pbCoffee->setEnabled(money >= 200);
+    ui->pbTea->setEnabled(money >= 100);
+    ui->pbReset->setEnabled(money > 0);
 }
-
 
 void Widget::refund_money()
 {
-    remain_money = ui->leMoney->text().toInt();
-    int change_500=0;
-    int change_100=0;
-    int change_50=0;
-    int change_10=0;
+    remain_money = ui->leMoney->intValue();
 
-    while(remain_money !=0){
-        if(remain_money >= 500){
-            return_money_change(&change_500,500);
-            continue;
-        }
-        if(remain_money >= 100){
-            return_money_change(&change_100,100);
-            continue;
-        }
-        if(remain_money >= 50){
-            return_money_change(&change_50,50);
-            continue;
-        }
-        if(remain_money >= 10){
-            return_money_change(&change_10,10);
-            continue;
-        }
-    }
+    int change_500;
+    int change_100;
+    int change_50;
+    int change_10;
+
+    return_money_change(&change_500,500);
+    return_money_change(&change_100,100);
+    return_money_change(&change_50,50);
+    return_money_change(&change_10,10);
 
     QMessageBox message_box;
     message_box.setText(QString("remain 500 * %1,  100 * %2,  50 * %3,  10 * %4 ").arg(change_500).arg(change_100).arg(change_50).arg(change_10));
@@ -67,19 +45,21 @@ void Widget::refund_money()
 }
 void Widget::return_money_change(int* money_change,int value)
 {
-    *money_change = remain_money / value;
-    remain_money %= value;
+    *money_change = money / value;
+    money %= value;
 }
 void Widget::on_pbReset_clicked()
 {
     refund_money();
-    ui->leMoney->setText("0");
+    money = 0;
+    ui->leMoney->display(money);
     pb_status();
 }
 
 void Widget::input_money(int value)
 {
-    ui->leMoney->setText(QString::number(ui->leMoney->text().toInt()+value));
+    money += value;
+    ui->leMoney->display(money);
     pb_status();
 }
 
@@ -87,7 +67,6 @@ void Widget::on_pb500_clicked()
 {
     input_money(500);
 }
-
 
 void Widget::on_pb100_clicked()
 {
@@ -121,7 +100,8 @@ void Widget::on_pbYul_clicked()
 
 void Widget::pay_money(int value)
 {
-        ui->leMoney->setText(QString::number(ui->leMoney->text().toInt()-value));
+        money-=value;
+        ui->leMoney->display(money);
         pb_status();
 }
 

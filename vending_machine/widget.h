@@ -38,9 +38,8 @@ private slots:
 
 private:
     Ui::Widget *ui;
-
-    int money_status;
     int remain_money;
+    int money {0};
 
     void return_money_change(int* money_change,int value);
     void pb_status();

@@ -1,5 +1,5 @@
 #include "airodumpk.h"
-#include <vector>
+
 
 AiroDumpK::AiroDumpK()
 {

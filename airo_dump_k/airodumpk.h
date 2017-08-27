@@ -6,7 +6,7 @@
 #include <pcap.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <vector>
+
 
 
 class AiroDumpK
@@ -25,7 +25,7 @@ public:
         uint8_t m802_addr3[6];
         uint16_t m802_seq;
     }__attribute__((packed)) M802H;
-    int
+    //int
 
 
     AiroDumpK();

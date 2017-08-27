@@ -5,6 +5,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include "airodumpk.h"
+#include <vector>
 
 #define PROMISCUOUS true;
 
@@ -12,6 +13,8 @@
 char *correct_dev(int argu_count,char *argu_vector);
 void packet_control(pcap_t * packet_descriptor);
 
+
+struct print_all_data{};
 
 
 int main(int argc, char *argv[])
@@ -48,6 +51,19 @@ void packet_control(pcap_t * packet_descriptor)
     const u_char *pkt_data;
     struct pcap_pkthdr *pkt_hdr;
     AiroDumpK Obj;
+    std::vector<unsigned char>type_802m_packs(9);
+    type_802m_packs[0] = 0x80;//beaconframe
+    type_802m_packs[1] = 0x08;//data
+    type_802m_packs[2] = 0xD4;//acknowledgement
+    type_802m_packs[3] = 0x94;//Block Ack
+    type_802m_packs[4] = 0xc4;//clear to send
+    type_802m_packs[5] = 0x48; //nullfuntion
+    type_802m_packs[6] = 0x84;//Block Ack Req
+    type_802m_packs[7] = 0x88;//QOS Data
+    type_802m_packs[8] = 0xb4;//Request-to-send
+
+
+
 
     while((loopstatus = pcap_next_ex(packet_descriptor, &pkt_hdr, &pkt_data)) >= 0){//pkt_data 's adress
        (void)pkt_hdr;//useless
@@ -58,8 +74,10 @@ void packet_control(pcap_t * packet_descriptor)
         //struct RadioTapHeader * packet_p=(struct RadioTapHeader *)pkt_data;//pkt_data->data(adress)
 //struct libnet_ethernet_hdr * recv_packet=(struct libnet_ethernet_hdr *)packet_data;
         int rth_len = Obj.find_802macframe((u_char *)pkt_data);
+        uint8_t * m802h_addr = (uint8_t *)pkt_data+rth_len;
+        printf("%02x\n",*m802h_addr);
 
-            printf("main: %d\n",rth_len);
+            //printf("main: %d\n",rth_len);
 
         //printf("hello\n");
         //if(iph_print(&packet_p,&tcpd_len) == -1)
@@ -74,3 +92,4 @@ void packet_control(pcap_t * packet_descriptor)
           pcap_perror(packet_descriptor,"Packet data read error");
 
 }
+

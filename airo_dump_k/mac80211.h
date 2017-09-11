@@ -31,12 +31,12 @@ private:
 
     //data for print ap
     uint8_t ap_bssid[6];
-    uint ap_beacons;
-    uint ap_data;
+    int ap_beacons;
+    int ap_data;
     int ap_ch;
-    uint8_t enc[3];
-    uint8_t cipher[3];
-    uint8_t ssid[];
+    string enc;
+    string cipher;
+    string ssid;
 
     //map enc
     typedef std::map<int,std::string> cip_map;
@@ -176,6 +176,14 @@ public:
     void edit_apdata1_map(int data);
     void get_802mac_data();
     void get_mgmt_data();
+    void set_ap_bssid();
+    void set_ap_beacon();
+    void set_ap_dpack();
+    void set_ap_channel();
+    void set_ap_encrypt();
+    void set_ap_cipher();
+    void set_ap_auth();
+    void set_ap_ssid();
     //int get_802mac_type(u_char *pack_front);
         /*void allocate_param(int p_count,char *param_dev);
         void set_param_ip(char **param_ip);//param input

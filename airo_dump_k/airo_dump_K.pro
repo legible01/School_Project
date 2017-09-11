@@ -6,9 +6,11 @@ CONFIG -= qt
 SOURCES += \
     main.cpp \
     radiotap.cpp \
-    mac80211.cpp
+    mac80211.cpp \
+    printdata.cpp
 
 HEADERS += \
     radiotap.h \
-    mac80211.h
+    mac80211.h \
+    printdata.h
 LIBS += -lpcap

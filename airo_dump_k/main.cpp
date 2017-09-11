@@ -5,9 +5,11 @@
 #include <pcap.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include "airodumpk.h"
+#include "mac80211.h"
+#include "radiotap.h"
 #include <vector>
 #include <string>
+#include <cstring>
 using namespace std;
 
 #define PROMISCUOUS true;
@@ -15,17 +17,14 @@ using namespace std;
 //reguler express need
 char *correct_dev(int argu_count,char *argu_vector);
 void packet_control(pcap_t * packet_descriptor);
-
+void print_ap_data();
+void print_station_data();
 
 struct print_all_data{};
-
 
 int main(int argc, char *argv[])
 {
     char *dev =correct_dev(argc,argv[1]);
-
-
-
 
     char errbuf[PCAP_ERRBUF_SIZE];
     int flags = PROMISCUOUS;
@@ -53,10 +52,14 @@ char *correct_dev(int argu_count,char *argu_vector)
 void packet_control(pcap_t * packet_descriptor)
 {
 
+    //typedef std::map<int,std::string> cip_map;
+    //typedef std::map<int,std::string>::iterator cip_map_iter;
+
+
     int loopstatus = 0;
     const u_char *pkt_data;
     struct pcap_pkthdr *pkt_hdr;
-    AiroDumpK Obj;
+    mac80211 Obj;
     std::vector<unsigned char>type_802m_packs(9);
     type_802m_packs[0] = 0x80;//beaconframe
     type_802m_packs[1] = 0x08;//data
@@ -74,19 +77,24 @@ void packet_control(pcap_t * packet_descriptor)
 
     while((loopstatus = pcap_next_ex(packet_descriptor, &pkt_hdr, &pkt_data)) >= 0){//pkt_data 's adress
        (void)pkt_hdr;//useless
-        string str1 ="BSSID\t\t   PWR  Beacons     #Data,   ESSID\n";
+
 
         if(loopstatus == 0)
             continue;//timeout check
 
         //struct RadioTapHeader * packet_p=(struct RadioTapHeader *)pkt_data;//pkt_data->data(adress)
 //struct libnet_ethernet_hdr * recv_packet=(struct libnet_ethernet_hdr *)packet_data;
-        Obj.get_rth_info((u_char *)pkt_data);
-        Obj.get_802mac_info((u_char *)pkt_data);
+        //system("clear");
+        string str1 ="BSSID\t\t   PWR  Beacons     #Data,   ESSID\n";
+        //print_ap_data;
+        //print_station_data;
+        Obj.get_rth_leng((uint8_t*)pkt_data);
+        Obj.get_802mac_type((u_char *)pkt_data);
+        Obj.get_802mac_data();
         //uint8_t * m802h_addr = (uint8_t *)pkt_data+rth_len;
 
 
-        //system("clear");
+
         //printf("%02x\n",*m802h_addr);
         //cout<< str1 << endl;
 
@@ -109,3 +117,12 @@ void packet_control(pcap_t * packet_descriptor)
 
 }
 
+
+void print_ap_data()
+{
+
+}
+void print_station_data()
+{
+
+}

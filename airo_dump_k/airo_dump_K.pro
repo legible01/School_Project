@@ -5,8 +5,10 @@ CONFIG -= qt
 
 SOURCES += \
     main.cpp \
-    airodumpk.cpp
+    radiotap.cpp \
+    mac80211.cpp
 
 HEADERS += \
-    airodumpk.h
+    radiotap.h \
+    mac80211.h
 LIBS += -lpcap

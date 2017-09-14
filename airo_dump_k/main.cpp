@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include "mac80211.h"
 #include "radiotap.h"
+#include "printdata.h"
 #include <vector>
 #include <string>
 #include <cstring>
@@ -60,6 +61,7 @@ void packet_control(pcap_t * packet_descriptor)
     const u_char *pkt_data;
     struct pcap_pkthdr *pkt_hdr;
     mac80211 Obj;
+    printdata Prints;
     std::vector<unsigned char>type_802m_packs(9);
     type_802m_packs[0] = 0x80;//beaconframe
     type_802m_packs[1] = 0x08;//data
@@ -91,6 +93,8 @@ void packet_control(pcap_t * packet_descriptor)
         Obj.get_rth_leng((uint8_t*)pkt_data);
         Obj.get_802mac_type((u_char *)pkt_data);
         Obj.get_802mac_data();
+
+        Prints.get_ap_bssid(Obj.pass_ap_bssid());
         //uint8_t * m802h_addr = (uint8_t *)pkt_data+rth_len;
 
 

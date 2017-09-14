@@ -89,6 +89,12 @@ void mac80211::get_mgmt_data()
 }
 
 
+uint8_t* mac80211::pass_ap_bssid()
+{
+    return ap_bssid;
+}
+
+
     //chk_sub_type = mac802_hdr_fc->fc_types;
    // chk_sub_type &= 240;//11110000
    // chk_sub_type >>= 4;
@@ -103,37 +109,17 @@ void mac80211::get_mgmt_data()
 
 //get entry point(address)with rth(change after )
 
-void mac80211::edit_apdata1_map(int data)
+/*oid mac80211::edit_apdata1_map(int data)
 {
     int test;
 
 
 
     if(test == true){
-    //ap_data1_map.insert(pair<int,struct ap_data>(1,{"",0,0,0,0,0,0,"","","",""}));
-       // ap_data1_map[1] = ;
-    }
-    /*
 
-        string ap_data_bssid;
-        int ap_data_pwr;
-        int ap_data_beacon;
-        int ap_data_data;
-        int ap_data_s;
-        int ap_data_ch;
-        int ap_data_mb;
-        string ap_data_enc;
-        string ap_data_cipher;
-        string ap_data_auth;
-        string essid;
-*/
-
-    //ap_data1_map
-    //iterator ap_data1_iter
-    //ap_data1_map.ap
     return ;
 }
-
+*/
 /*
 void packet_info ::  set_my_info()
 {

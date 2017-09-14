@@ -12,6 +12,7 @@
 #include <vector>
 #include <map>
 #include "radiotap.h"
+#include <tuple>
 
 using namespace std;
 
@@ -176,7 +177,8 @@ public:
     void edit_apdata1_map(int data);
     void get_802mac_data();
     void get_mgmt_data();
-    void set_ap_bssid();
+    //send data printdata_file
+    uint8_t* pass_ap_bssid();
     void set_ap_beacon();
     void set_ap_dpack();
     void set_ap_channel();

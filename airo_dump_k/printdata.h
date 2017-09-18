@@ -30,9 +30,18 @@ public:
     struct bssid
     {
         uint8_t mac_arr[6];
-        bool operator<(const bssid &s_mac)   const{
+        bool operator<(const bssid s_mac)   const{
            return std::tie(mac_arr[0],mac_arr[1],mac_arr[2],mac_arr[3],mac_arr[4],mac_arr[5])<std::tie(s_mac.mac_arr[0],s_mac.mac_arr[1],s_mac.mac_arr[2],s_mac.mac_arr[3],s_mac.mac_arr[4],s_mac.mac_arr[5]);
         }
+       bool operator<(const bssid* s_mac)   const{
+           return std::tie(mac_arr[0],mac_arr[1],mac_arr[2],mac_arr[3],mac_arr[4],mac_arr[5])<std::tie(s_mac->mac_arr[0],s_mac->mac_arr[1],s_mac->mac_arr[2],s_mac->mac_arr[3],s_mac->mac_arr[4],s_mac->mac_arr[5]);
+        }
+       void print_mac(){
+           for(int i=0;i<6;i++){
+               printf("%02x",this->mac_arr[i]);
+           }
+
+       }
 
     }__attribute__((packed)) typedef bssid;
     //typedef tuple<uint8_t,uint8_t,uint8_t,uint8_t,uint8_t,uint8_t> bssid;
@@ -40,6 +49,8 @@ public:
     print_ap_data*   ap_data1;
     bssid* recv_bssid;
     ap_data* ap_value;
+
+   void insert_new_map();
 
     printdata();
     ~printdata();

@@ -32,12 +32,15 @@ private:
 
     //data for print ap
     uint8_t ap_bssid[6];
-    int ap_beacons;
-    int ap_data;
-    int ap_ch;
-    string enc;
-    string cipher;
-    string ssid;
+    typedef struct{
+        int ap_beacons;
+        int ap_data;
+        int ap_ch;
+        string enc;
+        string cipher;
+        string ssid;
+     } ap_802_data1;
+    ap_802_data1 data1;
 
     //map enc
     typedef std::map<int,std::string> cip_map;
@@ -177,6 +180,9 @@ public:
     void edit_apdata1_map(int data);
     void get_802mac_data();
     void get_mgmt_data();
+    void get_beacon_data();
+    void get_enc_data();
+
     //send data printdata_file
     uint8_t* pass_ap_bssid();
     void set_ap_beacon();

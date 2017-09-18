@@ -59,6 +59,7 @@ void mac80211::get_802mac_data()
         switch (pack_subtype) {
         case 8:
            // get_beacon_data();
+            get_beacon_data();
             break;
         }
         //write_data();
@@ -80,9 +81,9 @@ void mac80211::get_mgmt_data()
     //00:bss,01:from,10:to,11:bridge
     if((mac802_comm->m802_fc.to_from_ds) == 0){
         memcpy(ap_bssid,mac802_comm->m802_source,sizeof(ap_bssid));
-        for(int i=0;i<6;i++){
-            printf("\tdata: %02x\n",ap_bssid[i]);
-        }
+        //for(int i=0;i<6;i++){
+           // printf("\tdata: %02x\n",ap_bssid[i]);
+        //}
      //else
 
     }
@@ -94,6 +95,17 @@ uint8_t* mac80211::pass_ap_bssid()
     return ap_bssid;
 }
 
+void mac80211::get_beacon_data()
+{
+    data1.ap_beacons=1;
+    data1.ap_data = 0;
+
+}
+void mac80211::get_enc_data()
+{
+    mac802_common_hdr * mac802_comm = (mac802_common_hdr *)mac802_hdr_addr;
+    printf("length of: %02x\n",sizeof(mac802_comm));
+}
 
     //chk_sub_type = mac802_hdr_fc->fc_types;
    // chk_sub_type &= 240;//11110000

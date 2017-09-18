@@ -4,7 +4,9 @@ printdata::printdata()
 {
     ap_data1 = new print_ap_data;
     recv_bssid = new bssid;
-    ap_value = new ap_data{0,0,0,0,"","",""};
+    ap_value = new ap_data{0,0,0,"","","",""};
+
+
 }
 printdata::~printdata()
 {
@@ -13,60 +15,42 @@ printdata::~printdata()
     delete[] ap_value;
 
 }
+//void printdata::pass_data(bssid& mac_info,ap_data& pack_info)
+//{
+    //recv_bssid = mac_info
+    //ap_value = pack_info
+//}
 
 void printdata::get_ap_bssid(uint8_t* recv_bssid_addr)
 {
-    memcpy(&recv_bssid->mac_arr[0],recv_bssid_addr,6);
-    printf("\nbefore check1: %02x \n",recv_bssid_addr[1]);
-    printf("\nbefore check2: %02x \n",recv_bssid->mac_arr[1]);
-    if((ap_data1->count(*recv_bssid)) == 0){
-    //ap_data1->insert(map<bssid,ap_data>::value_type(recv_bssid,ap_value));
-   // ap_data1[&recv_bssid]=ap_value;
-    ap_data1->insert(std::make_pair(recv_bssid,*ap_value));
-        //not matched
+
+    printf("\nbefore check1: %02x \n",recv_bssid_addr[1]);//check_recv_struct
+    bssid& test = (bssid&)*recv_bssid_addr;
+
+    print_ap_data::iterator it;
+    it = ap_data1->find(test);
+    if(it == ap_data1->end() ){
+        printf("none data at map \n");
+        //insert_new_map();
+        memcpy(&recv_bssid->mac_arr[0],recv_bssid_addr,6);
+
+        ap_data1->insert(print_ap_data::value_type(*recv_bssid,*ap_value));//none data insert
+        for(it = ap_data1->begin(); it!= ap_data1->end();++it)
+        {
+            //bssid* test = );
+            ((bssid*)&(it->first))->print_mac();
+            printf("\n\n");
+        }
     }else{
 
-        printf("\nfound\n");
-        //if has same address
-       // printf("\ncount? : %d\n",a);
-        //not need input bssid ,input other datas
-
-   }
-
-    //recv_bssid = recv_bssid_addr;
-    //recv_bssid = tie(*recv_bssid_addr[0],*recv_bssid_addr[1],*recv_bssid_addr[2],*recv_bssid_addr[3],*recv_bssid_addr[4],*recv_bssid_addr[5])
-    /*for( ){
-        recv_bssid[0] = r1
-
-    }*/
-
-   // std::cout<<" " << std::get<0>(recv_bssid);
-    //uint8_t r=(uint8_t*)recv_bssid[1];
-
-
-    //for(const auto i: *recv_bssid)
-   //for(re)
-   // {
-
-   //     std::cout <<it_a<< ' ';
-
-   // }
-
-
-
-    /*for(map<bssid,ap_data>::iterator it = ap_data1.begin(); it!=ap_data1.end();++it)
-    {if(it )
+        printf("\nfound\n\n");
+        for(it = ap_data1->begin(); it!= ap_data1->end();++it)
+        {
+            bssid* test = (bssid*)&(it->first);
+            test->print_mac();
+        }
     }
-
-*/
-
-    /*auto ap_bss_chk = ap_data1.find();//value)
-
-    if(ap_bss_chk != ap_data1.end()){
-            data_layer = ap_bss_chk->first;
-    }else{
-
-    }
-*/
 }
+
+
 

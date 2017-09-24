@@ -17,9 +17,10 @@ using namespace std;
 
 //reguler express need
 char *correct_dev(int argu_count,char *argu_vector);
-void packet_control(pcap_t * packet_descriptor);
+void packet_control(pcap_t * packet_descriptor,pcap_stat& stat);
 void print_ap_data();
 void print_station_data();
+void get_ap_datas(printdata::ap_data&ref1,mac80211::ap_data&ref2);
 
 struct print_all_data{};
 
@@ -31,11 +32,12 @@ int main(int argc, char *argv[])
     int flags = PROMISCUOUS;
 
     pcap_t *packet_descriptor = pcap_open_live(dev, BUFSIZ, flags, 300, errbuf);
+    struct pcap_stat stat;
     if(packet_descriptor == NULL) {
         printf("%s\n",errbuf);
         exit(1);
     }else{
-        packet_control(packet_descriptor);
+        packet_control(packet_descriptor,stat);
 
     }
     return 0;
@@ -50,7 +52,7 @@ char *correct_dev(int argu_count,char *argu_vector)
     return argu_vector;
 }
 
-void packet_control(pcap_t * packet_descriptor)
+void packet_control(pcap_t * packet_descriptor,pcap_stat& stat)
 {
 
     //typedef std::map<int,std::string> cip_map;
@@ -61,64 +63,57 @@ void packet_control(pcap_t * packet_descriptor)
     const u_char *pkt_data;
     struct pcap_pkthdr *pkt_hdr;
     mac80211 Obj;
-    printdata Prints;
-    std::vector<unsigned char>type_802m_packs(9);
-    type_802m_packs[0] = 0x80;//beaconframe
-    type_802m_packs[1] = 0x08;//data
-    type_802m_packs[2] = 0xD4;//acknowledgement
-    type_802m_packs[3] = 0x94;//Block Ack
-    type_802m_packs[4] = 0xc4;//clear to send
-    type_802m_packs[5] = 0x48; //nullfuntion
-    type_802m_packs[6] = 0x84;//Block Ack Req
-    type_802m_packs[7] = 0x88;//QOS Data
-    type_802m_packs[8] = 0xb4;//Request-to-send
-
-
-
+    printdata  Prints;
 
 
     while((loopstatus = pcap_next_ex(packet_descriptor, &pkt_hdr, &pkt_data)) >= 0){//pkt_data 's adress
        (void)pkt_hdr;//useless
+        pcap_stats(packet_descriptor,&stat);
 
 
         if(loopstatus == 0)
             continue;//timeout check
 
-        //struct RadioTapHeader * packet_p=(struct RadioTapHeader *)pkt_data;//pkt_data->data(adress)
-//struct libnet_ethernet_hdr * recv_packet=(struct libnet_ethernet_hdr *)packet_data;
-        //system("clear");
-        string str1 ="BSSID\t\t   PWR  Beacons     #Data,   ESSID\n";
-        //print_ap_data;
-        //print_station_data;
-        Obj.get_rth_leng((uint8_t*)pkt_data);
-        Obj.get_802mac_type((u_char *)pkt_data);
-        Obj.get_802mac_data();
+        Obj.get_rth_leng((uint8_t*)pkt_data);//rth length get
+        Obj.get_common_data((uint8_t *)pkt_data,pkt_hdr->len);
 
-        Prints.get_ap_bssid(Obj.pass_ap_bssid());
-        //uint8_t * m802h_addr = (uint8_t *)pkt_data+rth_len;
+        //confirm data
+        bool bssid_check = true;
+
+        bssid_check = Prints.chk_bssid((printdata::bssid*)Obj.pass_ap_bssid());
+
+        if(bssid_check == false){
+            Obj.get_mac802_cntdata();
+            Prints.get_ap_regen((printdata::bssid*)Obj.pass_ap_bssid(),Obj.pass_ap_regen_beacon(),Obj.pass_ap_regen_data());
+        }else{
+
+            Obj.get_mac802_data();//mac802 get data
+
+            get_ap_datas(Prints.pass_ap_data(),Obj.pass_ap_value());//data transfer to Obj ->Print
+            Prints.get_ap_newmap((printdata::bssid*)Obj.pass_ap_bssid());
+        }
 
 
+        Prints.print_cmd_ap();
+        Prints.data_zero_init();
 
-        //printf("%02x\n",*m802h_addr);
-        //cout<< str1 << endl;
-
-
-
-            //printf("main: %d\n",rth_len);
-
-        //printf("hello\n");
-        //if(iph_print(&packet_p,&tcpd_len) == -1)
-          //  continue;//return value 0 then mov next function and if value -1 then restart loop
-       // if(tcph_print(&packet_p,&tcpd_len) == -1)
-        //    continue;
-       // findhostadr(&packet_p,tcpd_len);
-        //tcpd_print(&packet_p,tcpd_len);
 
     }
     if(loopstatus == -1 || loopstatus == -2)
           pcap_perror(packet_descriptor,"Packet data read error");
 
 
+}
+
+void get_ap_datas(printdata::ap_data&ref1,mac80211::ap_data&ref2)
+{
+    ref1.get_channel(ref2.channel);
+    ref1.get_cipher(ref2.cipher);
+    ref1.get_auth(ref2.auth);
+    ref1.get_encrypt(ref2.encrpt);
+    ref1.get_ssid((uint8_t*)&ref2.ssid[0],ref2.ssid_len());
+    ref1.incr_beacon(ref2.pass_beacon());
+    ref1.incr_data_pack(ref2.pass_data_pack());
 }
 
 

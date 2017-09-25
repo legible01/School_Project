@@ -21,6 +21,7 @@ void packet_control(pcap_t * packet_descriptor,pcap_stat& stat);
 void print_ap_data();
 void print_station_data();
 void get_ap_datas(printdata::ap_data&ref1,mac80211::ap_data&ref2);
+void get_st_datas(printdata::st_data&ref1,mac80211::st_data&ref2);
 
 struct print_all_data{};
 
@@ -78,19 +79,34 @@ void packet_control(pcap_t * packet_descriptor,pcap_stat& stat)
         Obj.get_common_data((uint8_t *)pkt_data,pkt_hdr->len);
 
         //confirm data
-        bool bssid_check = true;
+        bool bssid_check = true;//have data then no run
+        bool station_check = false;//have data then run(true)
 
         bssid_check = Prints.chk_bssid((printdata::bssid*)Obj.pass_ap_bssid());
+        //confirm station same in
 
         if(bssid_check == false){
             Obj.get_mac802_cntdata();
             Prints.get_ap_regen((printdata::bssid*)Obj.pass_ap_bssid(),Obj.pass_ap_regen_beacon(),Obj.pass_ap_regen_data());
-        }else{
-
+        }else {
             Obj.get_mac802_data();//mac802 get data
 
             get_ap_datas(Prints.pass_ap_data(),Obj.pass_ap_value());//data transfer to Obj ->Print
             Prints.get_ap_newmap((printdata::bssid*)Obj.pass_ap_bssid());
+        }
+        //***************** station
+
+        station_check = Prints.chk_station((printdata::bssid*)Obj.pass_ap_bssid(),(printdata::station*)Obj.pass_st_station());
+        Obj.get_station_cntdata();
+        if(station_check == true)
+            //if has key in the map and right packet than set st_data regen.
+            Prints.get_st_regen((printdata::bssid*)Obj.pass_ap_bssid(),(printdata::station*)Obj.pass_st_station(),Obj.pass_st_frame());
+        else{
+
+            //Obj.get_station_data();//mac802 get data
+
+            get_st_datas(Prints.pass_st_data(),Obj.pass_st_value());//data transfer to Obj ->Print
+             Prints.get_st_newmap((printdata::bssid*)Obj.pass_ap_bssid(),(printdata::station*)Obj.pass_st_station());
         }
 
 
@@ -117,8 +133,10 @@ void get_ap_datas(printdata::ap_data&ref1,mac80211::ap_data&ref2)
 }
 
 
-void print_ap_data()
+void get_st_datas(printdata::st_data&ref1,mac80211::st_data&ref2)
 {
+    ref1.incr_frame(ref2.pass_frame());
+    ref1.get_probe((uint8_t*)&ref2.probe[0],ref2.probe_len());
 
 }
 void print_station_data()

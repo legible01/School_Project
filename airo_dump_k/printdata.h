@@ -114,6 +114,23 @@ public:
     {
         st_regen regen_data;
         string probe;
+
+        void incr_frame(uint recv_frame)
+        {
+            regen_data.frames += recv_frame;
+        }
+        void get_probe(uint8_t* recv_probe,int recv_probe_length)
+        {
+            //printf("probe len :%d\n",recv_probe_length);
+            probe.resize(recv_probe_length);
+            memcpy(&probe[0],recv_probe,recv_probe_length);
+            //cout<<(string)ssid<<endl;
+        }
+        void print_frame()
+        {
+            cout << regen_data.frames<<"\t";
+        }
+
     }st_data;
 
 
@@ -130,9 +147,9 @@ public:
            }*/
           void print_mac(){
               for(int i=0;i<6;i++){
-                  printf("%02x",this->mac_arr[i]);
+                  printf("%02x ",this->mac_arr[i]);
               }
-           printf("\n\n");
+           printf("\t");
           }
 
 
@@ -143,6 +160,7 @@ public:
        print_st_data  st_data1;
        station recv_station;
        st_data st_value;
+       void get_st_regen(bssid* recv_bssid_addr,station* recv_station_addr,uint recv_frame);
        //bssid
 
    void insert_new_map();
@@ -150,14 +168,18 @@ public:
     printdata();
     ~printdata();
     bool chk_bssid(bssid* recv_bssid_addr);
+    bool chk_station(bssid* recv_bssid_addr,station* recv_station_addr);
     void get_ap_regen(bssid* recv_bssid_addr,uint recv_beacon,uint recv_datapack);
     void get_ap_newmap(bssid* recv_bssid_addr);
 
 
    ap_data& pass_ap_data();
+   st_data& pass_st_data();
 
    void print_cmd_ap();
    void data_zero_init();
+
+   void get_st_newmap(bssid* recv_bssid_addr,station* recv_station_addr);
 
 
 

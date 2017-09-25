@@ -27,6 +27,8 @@ mac80211::mac80211()
     enc_map[1]="WPA";
     enc_map[2]="WPA2";
     enc_map[4]="WPS";
+
+    memset(dummy_mac,0xff,sizeof dummy_mac);
 }
 
 void mac80211::find_enc()
@@ -61,7 +63,8 @@ void mac80211::get_common_data(uint8_t* pack_front,uint32_t pack_len)
     //mac802_comm = (mac802_common_hdr *)mac802_hdr_addr;
     if(pack_type != 1){
         //pack_ds_type = get_ds_type();
-        get_802mac_addr(get_ds_type());
+        ds_type = get_ds_type();
+        get_802mac_addr(ds_type);
     }
 
 }
@@ -83,7 +86,7 @@ void mac80211::get_802mac_addr(int ds_type)
             break;
         case 3://00
             memcpy(bssid,&mac802_comm->m802_addr3,6);
-
+            memcpy(station,&mac802_comm->m802_addr2,6);
             break;
         case 4://use ap <->ap (WDS frame),00
 
@@ -122,12 +125,55 @@ void mac80211::get_mac802_cntdata()
          case 8:
              ap_datas.get_incr_data();
              break;
+
          default:
              ap_datas.get_notap_data();
              break;
          }
          break;
     }
+}
+
+void mac80211::get_station_cntdata()
+{
+    //
+
+//    pack_subtype = mac802_comm->m802_fc.subtype;//0:management,1:control,2:data
+  //  pack_type = mac802_comm->m802_fc.type;
+
+    //printf("check pack_type :%d\n",pack_type);
+  //  printf("check sub pack_type :%d\n",pack_subtype);
+    switch(pack_type){
+    case 0:
+        st_datas.get_notst_data();
+        switch (pack_subtype) {
+        case 4:
+            get_probe_data();
+            break;
+        default:
+            break;
+        }
+        break;
+    case 1:
+        st_datas.get_notst_data();
+        break;
+    case 2://<here1>filiter with ds_type,fffff bssid
+         switch(ds_type){
+         case 1:
+             st_datas.get_incr_frame();
+             break;
+         case 3:
+             if(memcmp(bssid,dummy_mac,sizeof(bssid))==0)
+                st_datas.get_incr_frame();
+             break;
+
+         default:
+             st_datas.get_notst_data();
+             break;
+         }
+         break;
+    }
+
 }
 
 void mac80211::get_mac802_data()
@@ -137,9 +183,14 @@ void mac80211::get_mac802_data()
     case 0://mgmt
         get_mgmt_data();
         switch (pack_subtype) {
+        case 4:
+            //get_probe_data();
+            break;
+
         case 8://sub_beacon
             get_beacon_data();
             break;
+
         default:
             ap_datas.get_notap_data();
             break;
@@ -157,12 +208,81 @@ void mac80211::get_mac802_data()
            //get_data_data();
             ap_datas.get_incr_data();
             break;
+        case 4:
+            //01 2
+
         case 8:
             //get_qos_data();
             ap_datas.get_incr_data();
+
             break;
         default:
             ap_datas.get_notap_data();
+        }
+
+    }
+
+}
+void mac80211::get_probe_data()
+{
+
+    //if(memcmp(bssid,dummy_mac,sizeof(bssid))==0)
+  //  {
+        //nonedata
+
+   // }
+    int tag_data_len = packet_len - (rth_length+sizeof(mgmt_frame_hdr)+sizeof(beacon_frame_common)+sizeof(fcs));
+    element_common * tag_entry = (element_common*)((uint8_t*)mac802_comm+sizeof(beacon_frame_common));
+    //probe ssid use mgmt hdr
+    while(tag_data_len > 0){
+        if(tag_entry->element_id == 0){
+            ssid_param* probe_tag = (ssid_param*)tag_entry;//herenow
+            (st_datas.probe).resize(probe_tag->ssid_comm.element_leng+1,0);
+            memcpy(&st_datas.probe[0],probe_tag->ssid,probe_tag->ssid_comm.element_leng);
+            break;
+        }
+        else{
+            tag_entry=(element_common *)((uint8_t*)tag_entry +(sizeof(element_common) + tag_entry->element_leng));
+            tag_data_len-= (sizeof(element_common) + tag_entry->element_leng);
+
+        }
+    }
+}
+void mac80211::get_station_data()
+{
+
+    switch (pack_type) {
+    case 0://mgmt
+        switch (pack_subtype) {
+        case 4:
+            get_probe_data();
+            break;
+        default:
+            st_datas.get_notst_data();
+            break;
+        }
+        break;
+
+    case 1://control
+        st_datas.get_notst_data();
+        break;
+
+    case 2://data
+        switch (pack_subtype) {
+        case 0://data
+           //get_data_data();
+            st_datas.get_incr_frame();
+            break;
+        case 4:
+            //01 2
+
+        case 8:
+            //get_qos_data();
+            st_datas.get_incr_frame();
+
+            break;
+        default:
+            st_datas.get_notst_data();
         }
 
     }
@@ -200,7 +320,7 @@ void mac80211::get_mgmt_data()
 {
 }
 
-    //00:bss,01:from,10:to,11:bridge
+    //00:bss,:from,10:to,11:bridge
    // if((mac802_comm->m802_fc.to_from_ds) == 0){
      //   memcpy(ap_bssid,mac802_comm->m802_source,sizeof(ap_bssid));
         //for(int i=0;i<6;i++){
@@ -221,6 +341,11 @@ uint8_t* mac80211::pass_ap_bssid()
     return bssid;
 }
 
+uint8_t* mac80211::pass_st_station()
+{
+    return station;
+}
+
 uint mac80211:: pass_ap_regen_beacon()
 
 {
@@ -236,6 +361,15 @@ mac80211::ap_data& mac80211:: pass_ap_value()
 {
     return ap_datas;
 }
+mac80211::st_data& mac80211:: pass_st_value()
+
+{
+    return st_datas;
+}
+uint mac80211:: pass_st_frame()
+{
+    return st_datas.pass_frame();
+}
 void mac80211::get_beacon_data()
 {
     ap_datas.get_incr_beacon();
@@ -248,10 +382,8 @@ void mac80211::get_enc_data()
     element_common * tag_entry = (element_common*)((uint8_t*)mac802_comm+sizeof(mgmt_frame_hdr)+sizeof(beacon_frame_common));
 
 
-    //uint8_t * t1 = (uint8_t*)tag_entry;
-    //printf("mac position : %02x %02x %02x \n" ,*(uint8_t*)t1,*(uint8_t*)(t1+1),*(uint8_t*)(t1+2));
     int tag_data_len = packet_len - (rth_length+sizeof(mgmt_frame_hdr)+sizeof(beacon_frame_common)+sizeof(fcs));
-    //printf("tag len : %d\n",tag_data_len);
+
     bool check_opn = true;
     while(tag_data_len > 0){
         switch (tag_entry->element_id) {
@@ -284,16 +416,11 @@ void mac80211::get_enc_data()
 
 void mac80211::get_ssid(element_common* tag_entry)
 {
-   // printf("size of ssid %d",sizeof(ap_datas.ssid));
 
     ssid_param* ssid_entry = (ssid_param*)tag_entry;
     (ap_datas.ssid).resize(ssid_entry->ssid_comm.element_leng+1,0);
     memcpy(&ap_datas.ssid[0],ssid_entry->ssid,ssid_entry->ssid_comm.element_leng);
-    //printf("size of ssid %d\n\n",sizeof(ssid_entry->ssid_comm.element_leng));
 
-    //for (str_data::iterator i = (ap_datas.ssid).begin(); i != (ap_datas.ssid).end(); ++i)
-      // std::cout << *i;
-       // printf("\n");
 }
 
 
@@ -312,13 +439,13 @@ void mac80211::get_cypher_auth(element_common* tag_entry)
         cip_map_iter cip_iter = cipher_map.find(basic_rsn->psl.pair_type);
         if (cip_iter != cipher_map.end())
             ap_datas.cipher=cip_iter->second;
-         //   cout << "cipher에 매핑된 value : " << cip_iter->second << endl;}
+
 
 
        authentication_map_iter auth_iter =  auth_map.find(basic_rsn->asl.auth_type);//psk
         if (auth_iter != auth_map.end())
             ap_datas.auth=auth_iter->second;
-           // cout << "auth에 매핑된 value : " << ap_datas.auth<< endl;}
+
 
     }else{
         int p_cnt =rsn_entry->psc;
@@ -355,14 +482,19 @@ void mac80211::get_enc(element_common* tag_entry)
     if (enc_iter != enc_map.end())
         ap_datas.encrpt=enc_iter->second;
 
-        //cout << "enc에 매핑된 value : " << ap_datas.encrpt<< endl;}
 }
+
+
+//======================================================
+
+
 
 
 void mac80211::data_init_zero()
 {
     ap_regens = {};
     ap_datas = {};
+    ds_type = 0;
 
     pack_subtype = 0;
     pack_type = 0;
@@ -370,54 +502,4 @@ void mac80211::data_init_zero()
 }
 
 
-    //chk_sub_type = mac802_hdr_fc->fc_types;
-   // chk_sub_type &= 240;//11110000
-   // chk_sub_type >>= 4;
 
-   // printf("type: %d    sub:%d\n", chk_type,chk_sub_type);
-    //for(m_type_iter = mac802_types.begin();m_type_iter != mac802_types.end();m_type_iter++)
-   // {
-    //     if(m_type_iter)
-    //}
-
-  // radio_tap_header *rth = (radio_tap_header *)pack_front;
-
-//get entry point(address)with rth(change after )
-
-/*oid mac80211::edit_apdata1_map(int data)
-{
-    int test;
-
-
-
-    if(test == true){
-
-    return ;
-}
-*/
-/*
-void packet_info ::  set_my_info()
-{
-
-    struct ifreq ifr;
-    strcpy(ifr.ifr_name, dev_name);
-
-    printf("\nname %s\n\n",dev_name);
-    int fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (fd < 0) {
-        printf("socket error\n");
-        return ;
-    }
-    printf("\nfd value: %d",fd);
-    int result = ioctl(fd, SIOCGIFADDR, &ifr);
-    printf("vaulu:%d \n",result);
-    check_ioctl_err(result);
-    memcpy(&this->my_ip,ifr.ifr_addr.sa_data+2,sizeof(uint32_t));// Get IP Adress
-    printf("\nmyip: %02x\n",my_ip);
-    result = ioctl(fd, SIOCGIFHWADDR, &ifr);
-    check_ioctl_err(result);
-    memcpy(&this->my_mac,ifr.ifr_hwaddr.sa_data,sizeof(uint8_t)*6);//get mac addr
-    for(int i=0;i<6;i++)
-        printf("%02x",my_mac[i]);
-}
-*/

@@ -38,6 +38,7 @@ public:
     //data for print ap
     uint8_t bssid[6];
     uint8_t station[6];
+
     struct{
         uint beacons;
         uint data_pack;
@@ -252,11 +253,16 @@ public:
     void get_mac802_cntdata();
     void get_802mac_addr(int ds_type);
 
+    void get_station_cntdata();
+
     void get_ssid(element_common* tag_entry);
     void get_current_ch(element_common* tag_entry);
     void get_cypher_auth(element_common* tag_entry);
     void get_enc(element_common* tag_entry);
     void get_channel(element_common* tag_entry);
+
+    void get_probe_data();
+    void get_station_data();
 
 
 
@@ -278,9 +284,12 @@ public:
     //send data printdata_file
     int pass_ap_dstype();
     uint8_t* pass_ap_bssid();
+    uint8_t* pass_st_station();
     uint pass_ap_regen_beacon();
     uint pass_ap_regen_data();
+    uint pass_st_frame();
     ap_data& pass_ap_value();
+
     void data_init_zero();
     //void set_ap_regeninfo();
     //void set_ap_allinfo();
@@ -288,6 +297,41 @@ public:
 
     mac80211();
 
+    //================
+    int ds_type;
+
+    struct{
+        uint frames;
+    }typedef st_regen;
+    typedef struct{
+        st_regen regen;
+
+        str_data probe;
+        int probe_len(){
+            return probe.size();
+        }
+        uint pass_frame()
+        {
+            return regen.frames;
+        }
+
+        void get_incr_frame()
+        {
+         regen.frames= 1;
+
+        }
+
+        void get_notst_data()
+        {
+         regen.frames = 0;
+        }
+     } st_data;
+
+    st_data st_datas;
+    st_data& pass_st_value();
+uint8_t dummy_mac[6];
 };
+
+
 
 #endif // MAC80211_H

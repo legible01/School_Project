@@ -80,7 +80,7 @@ void packet_control(pcap_t * packet_descriptor,pcap_stat& stat)
 
         //confirm data
         bool bssid_check = true;//have data then no run
-        bool station_check = false;//have data then run(true)
+
 
         bssid_check = Prints.chk_bssid((printdata::bssid*)Obj.pass_ap_bssid());
         //confirm station same in
@@ -94,8 +94,10 @@ void packet_control(pcap_t * packet_descriptor,pcap_stat& stat)
             get_ap_datas(Prints.pass_ap_data(),Obj.pass_ap_value());//data transfer to Obj ->Print
             Prints.get_ap_newmap((printdata::bssid*)Obj.pass_ap_bssid());
         }
-        //***************** station
 
+
+        //***************** station
+        bool station_check = false;//have data then run(true)
         station_check = Prints.chk_station((printdata::bssid*)Obj.pass_ap_bssid(),(printdata::station*)Obj.pass_st_station());
         Obj.get_station_cntdata();
         if(station_check == true)
@@ -104,9 +106,11 @@ void packet_control(pcap_t * packet_descriptor,pcap_stat& stat)
         else{
 
             //Obj.get_station_data();//mac802 get data
+            if (Obj.pass_cmp_bs_st() == true){//bssid == destination
+                get_st_datas(Prints.pass_st_data(),Obj.pass_st_value());//data transfer to Obj ->Print
+                Prints.get_st_newmap((printdata::bssid*)Obj.pass_ap_bssid(),(printdata::station*)Obj.pass_st_station());
 
-            get_st_datas(Prints.pass_st_data(),Obj.pass_st_value());//data transfer to Obj ->Print
-             Prints.get_st_newmap((printdata::bssid*)Obj.pass_ap_bssid(),(printdata::station*)Obj.pass_st_station());
+            }
         }
 
 

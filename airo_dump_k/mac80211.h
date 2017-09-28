@@ -32,6 +32,7 @@ public:
     uint8_t pack_subtype;
     uint8_t pack_type;
     uint32_t packet_len;
+    bool cmp_bs_st;
     //int pack_ds_type;
 
 
@@ -107,12 +108,6 @@ public:
 
 
 
-
-    //typedef std::map<int,> cip_map;
-
-
-
-    void find_enc();
     void get_rth_leng(uint8_t* pack_front);
 
     //common mac set
@@ -250,6 +245,8 @@ public:
     void get_common_data(uint8_t *pack_front,uint32_t pack_len);
 
     int get_ds_type();
+    bool pass_cmp_bs_st();
+    void cmp_bssid_destination(uint8_t* addr1,uint8_t* addr2);
     void get_mac802_cntdata();
     void get_802mac_addr(int ds_type);
 
@@ -262,8 +259,6 @@ public:
     void get_channel(element_common* tag_entry);
 
     void get_probe_data();
-    void get_station_data();
-
 
 
     //void edit_apdata1_map(int data);
@@ -284,6 +279,7 @@ public:
     //send data printdata_file
     int pass_ap_dstype();
     uint8_t* pass_ap_bssid();
+
     uint8_t* pass_st_station();
     uint pass_ap_regen_beacon();
     uint pass_ap_regen_data();

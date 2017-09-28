@@ -31,13 +31,7 @@ mac80211::mac80211()
     memset(dummy_mac,0xff,sizeof dummy_mac);
 }
 
-void mac80211::find_enc()
-{
-    //start addr frame var
-    //if not service set identity(ssid)
-    //if not 48(rsn)
 
-}
 
 void mac80211::get_rth_leng(uint8_t* pack_front)
 {
@@ -53,40 +47,43 @@ void mac80211::get_common_data(uint8_t* pack_front,uint32_t pack_len)
     mac802_comm = (mac802_common_hdr *)((uint8_t*)pack_front + rth_length);
     pack_type = mac802_comm->m802_fc.type;//0:management,1:control,2:data
     pack_subtype = mac802_comm->m802_fc.subtype;
-   // printf("type: %d\n",pack_type);
-    //printf("subtype: %d\n",pack_subtype);
 
-   // for(int a=0;a<6;a++){
-   //     printf("%02x ",bssid[a]);
-    //}
-    //printf("\n");
-    //mac802_comm = (mac802_common_hdr *)mac802_hdr_addr;
     if(pack_type != 1){
-        //pack_ds_type = get_ds_type();
         ds_type = get_ds_type();
         get_802mac_addr(ds_type);
     }
 
 }
+
+void mac80211::cmp_bssid_destination(uint8_t* addr1,uint8_t* addr2)
+{
+    if(memcmp(addr1,addr2,6) == 0)
+        cmp_bs_st = true;
+    else
+        cmp_bs_st = false;
+
+}
 void mac80211::get_802mac_addr(int ds_type)
 {
-    //printf("ds_type : %d\n",ds_type);
     switch (ds_type) {
     //define bssid position
     //easy to understand with https://networkengineering.stackexchange.com/questions/25100/four-layer-2-addresses-in-802-11-frame-header
         case 1://10
             memcpy(bssid,&mac802_comm->m802_addr1,6);
             memcpy(station,&mac802_comm->m802_addr2,6);
+            cmp_bssid_destination((uint8_t*)&mac802_comm->m802_addr1,(uint8_t*)&mac802_comm->m802_addr3);
                     //memcpy(&recv_bssid,recv_bssid_addr,6);
 
             break;
         case 2://01
             memcpy(bssid,&mac802_comm->m802_addr2,6);
             memcpy(station,&mac802_comm->m802_addr3,6);
+            cmp_bssid_destination((uint8_t*)&mac802_comm->m802_addr1,(uint8_t*)&mac802_comm->m802_addr2);
             break;
         case 3://00
             memcpy(bssid,&mac802_comm->m802_addr3,6);
             memcpy(station,&mac802_comm->m802_addr2,6);
+            cmp_bssid_destination((uint8_t*)&mac802_comm->m802_addr1,(uint8_t*)&mac802_comm->m802_addr3);
             break;
         case 4://use ap <->ap (WDS frame),00
 
@@ -96,15 +93,14 @@ void mac80211::get_802mac_addr(int ds_type)
     }
 
 }
+
+bool mac80211::pass_cmp_bs_st()
+{
+    return cmp_bs_st;
+}
 void mac80211::get_mac802_cntdata()
 {
-    //
 
-//    pack_subtype = mac802_comm->m802_fc.subtype;//0:management,1:control,2:data
-  //  pack_type = mac802_comm->m802_fc.type;
-
-    //printf("check pack_type :%d\n",pack_type);
-  //  printf("check sub pack_type :%d\n",pack_subtype);
     switch(pack_type){
     case 0:
         switch(pack_subtype){
@@ -136,13 +132,7 @@ void mac80211::get_mac802_cntdata()
 
 void mac80211::get_station_cntdata()
 {
-    //
 
-//    pack_subtype = mac802_comm->m802_fc.subtype;//0:management,1:control,2:data
-  //  pack_type = mac802_comm->m802_fc.type;
-
-    //printf("check pack_type :%d\n",pack_type);
-  //  printf("check sub pack_type :%d\n",pack_subtype);
     switch(pack_type){
     case 0:
         st_datas.get_notst_data();
@@ -162,9 +152,13 @@ void mac80211::get_station_cntdata()
          case 1:
              st_datas.get_incr_frame();
              break;
+         case 2:
+             break;
          case 3:
              if(memcmp(bssid,dummy_mac,sizeof(bssid))==0)
                 st_datas.get_incr_frame();
+             break;
+         case 4:
              break;
 
          default:
@@ -206,6 +200,7 @@ void mac80211::get_mac802_data()
         switch (pack_subtype) {
         case 0://data
            //get_data_data();
+            //mac
             ap_datas.get_incr_data();
             break;
         case 4:
@@ -248,46 +243,7 @@ void mac80211::get_probe_data()
         }
     }
 }
-void mac80211::get_station_data()
-{
 
-    switch (pack_type) {
-    case 0://mgmt
-        switch (pack_subtype) {
-        case 4:
-            get_probe_data();
-            break;
-        default:
-            st_datas.get_notst_data();
-            break;
-        }
-        break;
-
-    case 1://control
-        st_datas.get_notst_data();
-        break;
-
-    case 2://data
-        switch (pack_subtype) {
-        case 0://data
-           //get_data_data();
-            st_datas.get_incr_frame();
-            break;
-        case 4:
-            //01 2
-
-        case 8:
-            //get_qos_data();
-            st_datas.get_incr_frame();
-
-            break;
-        default:
-            st_datas.get_notst_data();
-        }
-
-    }
-
-}
 int mac80211::get_ds_type()
 {
     //mac802_common_hdr * mac802_comm = (mac802_common_hdr *)mac802_hdr_addr;
@@ -301,40 +257,21 @@ int mac80211::get_ds_type()
         case true:
             switch (check2) {
                 case true:
-                return 4;//almost useless
+                return 4;//almost useless//to1 from1
                 case false:
-                return 3;
+                return 3;//0 0
             }
         case false:
             switch (check2) {
                 case true:
-                return 1;
+                return 1;//to_ds1 fromds0
                 case false:
-                return 2;
-                }
+                return 2;//to_ds0 from_ds1
+                }//bs_info
     }
 }
 
 
-void mac80211::get_mgmt_data()
-{
-}
-
-    //00:bss,:from,10:to,11:bridge
-   // if((mac802_comm->m802_fc.to_from_ds) == 0){
-     //   memcpy(ap_bssid,mac802_comm->m802_source,sizeof(ap_bssid));
-        //for(int i=0;i<6;i++){
-           // printf("\tdata: %02x\n",ap_bssid[i]);
-        //}
-     //else
-
-    //}
-
-
-/*int mac80211::pass_ap_dstype()
-{
-    return pack_ds_type;
-}*/
 
 uint8_t* mac80211::pass_ap_bssid()
 {
@@ -455,6 +392,7 @@ void mac80211::get_cypher_auth(element_common* tag_entry)
         {
             cip_map_iter cip_iter = cipher_map.find(psl_entry->pair_type);
             if (cip_iter != cipher_map.end())
+
                 ap_datas.cipher=cip_iter->second;
              p_cnt-=1;
              psl_entry = (pair_suite_list*)((uint8_t*)psl_entry+sizeof(pair_suite_list));
